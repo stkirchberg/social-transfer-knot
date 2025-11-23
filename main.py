@@ -1,5 +1,9 @@
 import tkinter as tk
 from tkinter import ttk
+from core.room_manager import RoomManager
+from ui.create_room import CreateRoomUI
+from ui.chat_room import ChatRoomUI
+
 
 class ChatApp:
     def __init__(self, root):
@@ -7,6 +11,7 @@ class ChatApp:
         self.root.title("social transfer knot")
         self.root.state("zoomed")
 
+        self.room_manager = RoomManager()
         self.active_room = None
 
         self.setup_styles()
@@ -118,7 +123,14 @@ class ChatApp:
         self.show_text("Joining room...\n(not implemented yet)")
 
     def create_room_view(self):
-        self.show_text("Creating a room...\n(not implemented yet)")
+        self.clear_main()
+
+        ui = CreateRoomUI(
+            self.main_area,
+            self.room_manager,
+            on_room_created=self.enter_created_room
+        )
+        ui.pack(fill="both", expand=True)
 
     # ----------------------------
     # Enter Room → token + username
@@ -156,6 +168,12 @@ class ChatApp:
             self.show_text("Username cannot be empty.")
             return
         self.show_text(f"You joined {self.active_room} as: {name}\n(Chat UI coming soon)")
+
+    def enter_created_room(self, room):
+        self.clear_main()
+        ui = ChatRoomUI(self.main_area, room)
+        ui.pack(fill="both", expand=True)
+
 
     # ----------------------------
     # Helper UI
