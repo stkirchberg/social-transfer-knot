@@ -11,9 +11,15 @@ class ChatApp:
         self.root.title("social transfer knot")
         self.root.state("zoomed")
 
+        # ----------------------------
+        # Core
+        # ----------------------------
         self.room_manager = RoomManager()
         self.active_room = None
 
+        # ----------------------------
+        # Styles & Layout
+        # ----------------------------
         self.setup_styles()
         self.setup_layout()
 
@@ -49,18 +55,15 @@ class ChatApp:
         self.container = ttk.Frame(self.root)
         self.container.pack(fill="both", expand=True)
 
-        # Startbreite
-        self.sidebar_width = 400
-
         # Sidebar
+        self.sidebar_width = 450
         self.sidebar = ttk.Frame(self.container, style="Side.TFrame", width=self.sidebar_width)
         self.sidebar.pack(side="left", fill="y")
         self.sidebar.pack_propagate(False)
 
-        # Draggable Separator für Resize
+        # Separator für Resize
         self.separator = ttk.Separator(self.container, orient="vertical", cursor="sb_h_double_arrow")
         self.separator.pack(side="left", fill="y")
-
         self.separator.bind("<ButtonPress-1>", self.start_resize)
         self.separator.bind("<B1-Motion>", self.perform_resize)
 
@@ -76,7 +79,6 @@ class ChatApp:
         self.rooms_frame = ttk.Frame(self.sidebar, style="Side.TFrame")
         self.rooms_frame.pack(fill="both", expand=True, padx=10)
 
-        self.room_names = ["Room A", "Room B", "Room C"]
         self.render_rooms()
 
         # Hauptbereich
@@ -87,7 +89,7 @@ class ChatApp:
         self.main_label.pack(pady=50)
 
     # ----------------------------
-    # Resize Sidebar
+    # Sidebar Resize
     # ----------------------------
     def start_resize(self, event):
         self.start_x = event.x
@@ -96,35 +98,43 @@ class ChatApp:
         dx = event.x - self.start_x
         new_width = self.sidebar.winfo_width() + dx
 
-        # Grenzen
         min_width = 100
         max_width = int(self.root.winfo_width() * 0.5)
-
-        if new_width < min_width:
-            new_width = min_width
-        if new_width > max_width:
-            new_width = max_width
+        if new_width < min_width: new_width = min_width
+        if new_width > max_width: new_width = max_width
 
         self.sidebar_width = new_width
         self.sidebar.config(width=new_width)
         self.sidebar.pack_propagate(False)
 
     # ----------------------------
-    # Rooms
+    # Rooms in Sidebar
     # ----------------------------
     def render_rooms(self):
-        for widget in self.rooms_frame.winfo_children():
-            widget.destroy()
-        for room in self.room_names:
-            ttk.Button(self.rooms_frame, text=room,
-                       command=lambda r=room: self.enter_room(r)).pack(fill="x", pady=4)
+        for w in self.rooms_frame.winfo_children():
+            w.destroy()
+        for room_name, room in self.room_manager.rooms.items():
+            ttk.Button(
+                self.rooms_frame,
+                text=room_name,
+                command=lambda r=room_name: self.open_room(r)
+            ).pack(fill="x", pady=4)
 
+    def open_room(self, room_name):
+        room = self.room_manager.get_room(room_name)
+        self.clear_main()
+        username = room.admin  # Admin ist automatisch
+        ui = ChatRoomUI(self.main_area, room, username)
+        ui.pack(fill="both", expand=True)
+
+    # ----------------------------
+    # Join / Create Room
+    # ----------------------------
     def join_room_view(self):
         self.show_text("Joining room...\n(not implemented yet)")
 
     def create_room_view(self):
         self.clear_main()
-
         ui = CreateRoomUI(
             self.main_area,
             self.room_manager,
@@ -132,48 +142,11 @@ class ChatApp:
         )
         ui.pack(fill="both", expand=True)
 
-    # ----------------------------
-    # Enter Room → token + username
-    # ----------------------------
-    def enter_room(self, room_name):
-        self.active_room = room_name
-        self.show_token_prompt(room_name)
-
-    def show_token_prompt(self, room):
+    def enter_created_room(self, room, username):
         self.clear_main()
-        ttk.Label(self.main_area, text=f"Enter token for {room}:", style="Main.TLabel",
-                  font=("Arial", 14)).pack(pady=20)
-        self.token_entry = ttk.Entry(self.main_area, width=40)
-        self.token_entry.pack(pady=10)
-        ttk.Button(self.main_area, text="Submit Token", style="Accent.TButton",
-                   command=lambda: self.token_entered(self.token_entry.get())).pack(pady=10)
-
-    def token_entered(self, token):
-        if not token.strip():
-            self.show_text("Token cannot be empty.")
-            return
-        self.username_prompt()
-
-    def username_prompt(self):
-        self.clear_main()
-        ttk.Label(self.main_area, text="Choose a username for this room:",
-                  style="Main.TLabel", font=("Arial", 14)).pack(pady=20)
-        self.username_entry = ttk.Entry(self.main_area, width=40)
-        self.username_entry.pack(pady=10)
-        ttk.Button(self.main_area, text="Set Username", style="Accent.TButton",
-                   command=lambda: self.username_set(self.username_entry.get())).pack(pady=10)
-
-    def username_set(self, name):
-        if not name.strip():
-            self.show_text("Username cannot be empty.")
-            return
-        self.show_text(f"You joined {self.active_room} as: {name}\n(Chat UI coming soon)")
-
-    def enter_created_room(self, room):
-        self.clear_main()
-        ui = ChatRoomUI(self.main_area, room)
+        ui = ChatRoomUI(self.main_area, room, username)
         ui.pack(fill="both", expand=True)
-
+        self.render_rooms()
 
     # ----------------------------
     # Helper UI
