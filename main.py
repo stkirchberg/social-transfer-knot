@@ -44,12 +44,22 @@ class ChatApp:
         self.container = ttk.Frame(self.root)
         self.container.pack(fill="both", expand=True)
 
+        # Startbreite
         self.sidebar_width = 400
 
+        # Sidebar
         self.sidebar = ttk.Frame(self.container, style="Side.TFrame", width=self.sidebar_width)
         self.sidebar.pack(side="left", fill="y")
         self.sidebar.pack_propagate(False)
 
+        # Draggable Separator für Resize
+        self.separator = ttk.Separator(self.container, orient="vertical", cursor="sb_h_double_arrow")
+        self.separator.pack(side="left", fill="y")
+
+        self.separator.bind("<ButtonPress-1>", self.start_resize)
+        self.separator.bind("<B1-Motion>", self.perform_resize)
+
+        # Sidebar Inhalte
         ttk.Button(self.sidebar, text="Join Room", style="Accent.TButton",
                    command=self.join_room_view).pack(fill="x", padx=10, pady=(20, 10))
         ttk.Button(self.sidebar, text="Create Room", style="Accent.TButton",
@@ -64,11 +74,35 @@ class ChatApp:
         self.room_names = ["Room A", "Room B", "Room C"]
         self.render_rooms()
 
+        # Hauptbereich
         self.main_area = ttk.Frame(self.container, style="Main.TFrame")
         self.main_area.pack(side="left", fill="both", expand=True)
         self.main_label = ttk.Label(self.main_area, text="Welcome!\n\nSelect a room or create one.",
                                     style="Main.TLabel", font=("Arial", 14))
         self.main_label.pack(pady=50)
+
+    # ----------------------------
+    # Resize Sidebar
+    # ----------------------------
+    def start_resize(self, event):
+        self.start_x = event.x
+
+    def perform_resize(self, event):
+        dx = event.x - self.start_x
+        new_width = self.sidebar.winfo_width() + dx
+
+        # Grenzen
+        min_width = 100
+        max_width = int(self.root.winfo_width() * 0.5)
+
+        if new_width < min_width:
+            new_width = min_width
+        if new_width > max_width:
+            new_width = max_width
+
+        self.sidebar_width = new_width
+        self.sidebar.config(width=new_width)
+        self.sidebar.pack_propagate(False)
 
     # ----------------------------
     # Rooms
